@@ -24,11 +24,12 @@ bool rx(SOCKET sock, char* buf, int len)
     return true;
 }
 
+//для одного клиента
 void h(SOCKET client)
 {
     //тайм-аут для приёма данных
-    DWORD t_idle= 30000; 
-    DWORD t_tr = 500; 
+    DWORD t_idle= 30000; //след запрос
+    DWORD t_tr = 500; //передача
 
     setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (char*)&t_idle, sizeof(t_idle));
 
@@ -47,7 +48,7 @@ void h(SOCKET client)
 
     char header[8];
 
-    // конечный автомат: READ_HEADER -> READ_BODY -> SEND_REPLY -> READ_HEADER -> ...
+    // конечный автомат
     while (true)
     {
         if (!rx(client, header, 8))
@@ -72,7 +73,8 @@ void h(SOCKET client)
             cout << "неверный размер payload: " << size  << endl;
             break;
         }
-
+        
+        //короткий таймаут перед чтением тела
         setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (char*)&t_tr, sizeof(t_tr));
 
         // читаем  ровно size байт
@@ -88,7 +90,7 @@ void h(SOCKET client)
         // ждём следующий запрос
         setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (char*)&t_idle, sizeof(t_idle));
 
-        // отправляем заголовок + тело обратно
+        // отправляем эхо
         if (send(client, header, 8,    0) == SOCKET_ERROR ||
             send(client, body,   size, 0) == SOCKET_ERROR)
         {
@@ -131,6 +133,7 @@ int main()
         closesocket(server); WSACleanup(); return 1;
     }
 
+    //слушаемс...
     listen(server, SOMAXCONN);
     cout << "TCP сервер запущен на порту " << PORT << endl;
 
